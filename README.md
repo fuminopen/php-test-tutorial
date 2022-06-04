@@ -12,6 +12,9 @@
 
 下記のままたたいた場合は、コマンドを実行したディレクトリに`example-app`というディレクトリが作成され、その中にLaravelがインストールされることになります。
 
+
+今回は`php_test_tutorials`という名前で作成しました。
+
 ```bash
 curl -s "https://laravel.build/example-app" | bash
 ```
@@ -30,6 +33,14 @@ WWWUSER=1000
 + DB_HOST=127.0.0.1
 ```
 
+phpunit.xmlの下記部分も書き換えます。
+
+```xml
+<php>
+    <env name="DB_DATABASE" value="php_test_tutorials"/> <!-- testingをプロジェクト名に書き換える -->
+</php>
+```
+
 docker imageのbuildをおこないます。
 
 ```
@@ -40,6 +51,12 @@ docker-compose build
 
 ```
 ./vendor/bin/sail up
+```
+
+立ち上がったらmigrationを実行します。
+
+```bash
+php artisan migrate
 ```
 
 ## このチュートリアルで作成するアプリケーション
