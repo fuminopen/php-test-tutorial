@@ -215,44 +215,96 @@ Migrated:  2022_06_04_093619_create_projects_table (20.90ms)
      42▕ }
 ```
 
+## step 3 -- 仕様通りに動くようにする
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## 2. /projectsにアクセスするとプロジェクトの一覧を見ることができる
-
-1. まずはFeatureにE2Eのテストを書いてしまいましょう。
-
-
+- ProjectsControllerで、受け取ったリクエストからProjectのレコードを作成するようにしました。
+ただ当然ながらテストは通りません。Projectモデルを作成する必要がありますね。
 
 ```php
-/**
- * /projectsにアクセスするとプロジェクトの一覧を見ることができる
- *
- * @test
- */
-public function projects_displayed()
+public function create(Request $request)
 {
-    $response = $this->get('/projects');
-
-    $response->assertStatus(200);
+    Project::create([
+        'title' => $request->title,
+        'description' => $request->description,
+    ]);
 }
 ```
 
-2. 上記のテストを通したら次は要件を追加します。
+```php
+  • Tests\Feature\ProjectsTest > projects created
+   Error
+
+  Class "App\Http\Controllers\Project" not found
+```
+
+- モデルクラスが作成されましたね。ProjectsControllerにimport文を追加して再度テストをまわしてみましょう。
+
+```bash
+php artisan make:model Project
+```
 
 ```php
+// in ProjectsController
+use App\Models\Project;
+```
+
+```php
+class Project extends Model
+{
+    use HasFactory;
+}
+```
+
+- 次は別のエラーが出ました。デフォルトではtitle / descriptionともにmass assignmentのブロックがかかっていますね。
+
+```bash
+  • Tests\Feature\ProjectsTest > projects created
+   Illuminate\Database\Eloquent\MassAssignmentException
+
+  Add [title] to fillable property to allow mass assignment on [App\Models\Project].
+```
+
+- Laravelではmass assignmentの受け入れはModelsクラスのクラス変数である`$fillable`、あるいは`$guarded`で定義します。
+
+```php
+class Project extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'title',
+        'description',
+    ];
+}
+```
+
+- テストをまわしてみると・・・・・通りました！！
+
+```bash
+   PASS  Tests\Feature\ProjectsTest
+  ✓ projects created
+
+  Tests:  1 passed
+  Time:   0.07s
+```
+
+- 実際にDBを見に行ってみましょう。しっかりとレコードが出来上がっていることがわかりますね。
+
+```bash
+$ docker ps
+20cb73cec85c   mysql/mysql-server:8.0        "/entrypoint.sh mysq…"   39 minutes ago   Up 30 minutes (healthy)   0.0.0.0:3306->3306/tcp, :::3306->3306/tcp, 33060-33061/tcp phptesttutorials_mysql_1 # phptesttutorials_mysql_1をコピーする
+
+$ docker exec -it phptesttutorials_mysql_1 bash
+
+# 以下mysqlコンテナ内
+bash-4.4# mysql -u sail -p
+Enter password: # .envで定義してあるパスワードを打つ
+
+mysql> select * from php_test_tutorials.projects;
++----+---------------------+---------------------+----------------+----------------------------------------------------------------------------------+
+| id | created_at          | updated_at          | title          | description                                                                      |
++----+---------------------+---------------------+----------------+----------------------------------------------------------------------------------+
+|  1 | 2022-06-04 12:33:47 | 2022-06-04 12:33:47 | test project 1 | lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja. |
++----+---------------------+---------------------+----------------+----------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+```

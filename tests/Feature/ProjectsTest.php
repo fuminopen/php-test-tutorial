@@ -6,18 +6,6 @@ use Tests\TestCase;
 
 class ProjectsTest extends TestCase
 {
-    // /**
-    //  * /projectsにアクセスするとプロジェクトの一覧を見ることができる
-    //  *
-    //  * @test
-    //  */
-    // public function projects_displayed()
-    // {
-    //     $response = $this->get('/projects');
-
-    //     $response->assertStatus(200);
-    // }
-
     /**
      * /projectsにPOSTアクセスするとプロジェクトを作成することができる
      *
