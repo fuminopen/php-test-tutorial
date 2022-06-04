@@ -23,6 +23,13 @@ WWWGROUP=1000
 WWWUSER=1000
 ```
 
+および下記を書き換えます。
+
+```git
+- DB_HOST=mysql
++ DB_HOST=127.0.0.1
+```
+
 docker imageのbuildをおこないます。
 
 ```
