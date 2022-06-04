@@ -49,3 +49,168 @@ alias pt="php artisan test"
 alias psuite="php artisan test --testsuite"
 alias pf="php artisan test --filter"
 ```
+
+# 1. /projectsにPOSTアクセスするとプロジェクトを作成することができる
+
+## ステップ1
+
+1. まずはE2Eのテストをかいてしまいます。
+
+Doc comment部分に@testというアノテーションがついているのが見えるかと思います。
+このアノテーションがついていない場合、その関数はテストとして認識されず、実行されません。ただし例外として、関数名がtestから始まる場合、アノテーションは不要です。
+
+```php
+/**
+ * /projectsにPOSTアクセスするとプロジェクトを作成することができる
+ *
+ * @test
+ */
+public function projects_created()
+{
+    $response = $this->post('/projects', [
+        'title' => 'test project 1',
+        'description' => 'lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja.'
+    ]);
+
+    $response->assertStatus(200);
+}
+```
+
+- まわしてみましたがなんで405だったのかよくわかりません。
+
+```bash
+  • Tests\Feature\ProjectsTest > projects created
+  Expected response status code [200] but received 405.
+  Failed asserting that 200 is identical to 405.
+```
+
+- withoutExceptionHandling()メソッドを使用してコード実行時の例外を握りつぶさないようにして再度回します。
+
+```php
+public function projects_created()
+{
+    $this->withoutExceptionHandling();
+```
+
+- NotFoundHttpとありますね。そもそもルーティングを定義していないので当然ですね。このようにテストの詳細な失敗理由を知りたいときはwithoutExceptionHandling()をつけてあげるとよいとおもいます。
+
+```bash
+  • Tests\Feature\ProjectsTest > projects created
+   Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+
+  POST http://php-test-tutorials.test/projects
+```
+
+- エラーメッセージに従ってroutingとコントローラーを追加しました。
+
+```php
+// in web.php
+Route::post('/projects', [\App\Http\Controllers\ProjectsController::class, 'create']);
+
+// in ProjectsController
+public function create(Request $request)
+{
+}
+```
+
+- 再度回してみます。無事とおりました。
+
+```bash
+   PASS  Tests\Feature\ProjectsTest
+  ✓ projects created
+
+  Tests:  1 passed
+  Time:   0.06s
+```
+
+## ステップ2
+
+ですが、このテスト、このままでは圧倒的に不十分です。
+なぜならtitleとdescriptionをリクエストとして送信しましたが、その値をもとに本当にレコードが作成されたのかがわかりません。
+
+- テストにチェック (これをアサーションと呼ぶ) を追加しましょう。assertDatabaseHasはTestCaseクラスの持つメソッドで、指定したテーブルに、指定した属性をもつレコードが存在するかをチェックするメソッドです。
+回しましょう。
+
+```php
+/**
+ * /projectsにPOSTアクセスするとプロジェクトを作成することができる
+ *
+ * @test
+ */
+public function projects_created()
+{
+    $this->withoutExceptionHandling();
+
+    $response = $this->post('/projects', [
+        'title' => 'test project 1',
+        'description' => 'lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja.'
+    ]);
+
+    $response->assertStatus(200);
+
+    $this->assertDatabaseHas('projects', [
+        'title' => 'test project 1',
+        'description' => 'lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja.'
+    ]);
+}
+```
+
+- 失敗したようです。projectsテーブルなんて存在しないよと言われてしまいました。またまた当然ですね。作っていないので。
+
+```bash
+  • Tests\Feature\ProjectsTest > projects created
+   Illuminate\Database\QueryException
+
+  SQLSTATE[42S02]: Base table or view not found: 1146 Table 'testing.projects' doesn't exist (SQL: select count(*) as aggregate from `projects` where (`title` = test project 1 and `description` = lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja.))
+```
+
+- migrationファイルを追加して作りましょう。
+
+```bash
+$ php artisan make:migration CreateProjectsTable
+Created Migration: 2022_06_04_093619_create_projects_table
+```
+
+```php
+public function up()
+{
+    Schema::create('projects', function (Blueprint $table) {
+        $table->id();
+        $table->timestamps();
+        $table->string('title');
+        $table->string('description');
+    });
+}
+```
+
+- 作成したマイグレーションファイルを実行します。
+
+```bash
+$ php artisan migrate
+Migrating: 2022_06_04_093619_create_projects_table
+Migrated:  2022_06_04_093619_create_projects_table (20.90ms)
+```
+
+## 2. /projectsにアクセスするとプロジェクトの一覧を見ることができる
+
+1. まずはFeatureにE2Eのテストを書いてしまいましょう。
+
+
+
+```php
+/**
+ * /projectsにアクセスするとプロジェクトの一覧を見ることができる
+ *
+ * @test
+ */
+public function projects_displayed()
+{
+    $response = $this->get('/projects');
+
+    $response->assertStatus(200);
+}
+```
+
+2. 上記のテストを通したら次は要件を追加します。
+
+```php
