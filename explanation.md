@@ -1,4 +1,4 @@
-## Laravelにおける自動テストについて
+# Laravelにおける自動テストについて
 
 - PHPUnitというPHPのテスティングフレームワークを使用する。Laravel固有の機能ではない。
 - 基本的にはプロジェクトのルートディレクトリ直下の`tests`ディレクトリにテストは作成していく。
@@ -36,7 +36,6 @@ php artisan test --testsuite Feature // 機能テストのみ
 </testsuites>
 ```
 
-
 ## おすすめの設定
 
 - `php artisan test`を毎回打つのは大変。aliasコマンドで登録をしておくことをおすすめ。
@@ -50,9 +49,11 @@ alias psuite="php artisan test --testsuite"
 alias pf="php artisan test --filter"
 ```
 
+___
+
 # 1. /projectsにPOSTアクセスするとプロジェクトを作成することができる
 
-## ステップ1
+## ステップ1 -- テストのスクラッチを書く
 
 1. まずはE2Eのテストをかいてしまいます。
 
@@ -123,7 +124,7 @@ public function create(Request $request)
   Time:   0.06s
 ```
 
-## ステップ2
+## ステップ2 -- 仕様をテストに反映する
 
 ですが、このテスト、このままでは圧倒的に不十分です。
 なぜならtitleとdescriptionをリクエストとして送信しましたが、その値をもとに本当にレコードが作成されたのかがわかりません。
@@ -190,6 +191,47 @@ $ php artisan migrate
 Migrating: 2022_06_04_093619_create_projects_table
 Migrated:  2022_06_04_093619_create_projects_table (20.90ms)
 ```
+
+- 再度回すとテストの失敗理由が変わりました。指定したタイトルおよび詳細に合致するレコードは見つかりませんでしたよと出ていますね。すなわち次の作業は、`/projects`へPOSTリクエストがあったら、実際にDBへの保存を行いこのアサーションが通るようにすることですね。
+
+```bash
+  • Tests\Feature\ProjectsTest > projects created
+  Failed asserting that a row in the table [projects] matches the attributes {
+      "title": "test project 1",
+      "description": "lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja."
+  }.
+
+  The table is empty.
+
+  at tests/Feature/ProjectsTest.php:38
+     34▕
+     35▕         $response->assertStatus(200);
+     36▕
+     37▕         $this->assertDatabaseHas('projects', [
+  ➜  38▕             'title' => 'test project 1',
+     39▕             'description' => 'lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja.'
+     40▕         ]);
+     41▕     }
+     42▕ }
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 2. /projectsにアクセスするとプロジェクトの一覧を見ることができる
 
