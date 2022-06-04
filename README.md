@@ -42,6 +42,14 @@ docker-compose build
 ./vendor/bin/sail up
 ```
 
+## このチュートリアルで作成するアプリケーション
+
+タスク管理アプリ。
+
+タスクを作成し、プロジェクトごとにそのタスクをまとめて管理することができる。
+
+タスクには発行者 (owner) と担当者 (assignee) を設定することができる。
+
 ## License
 
 This tutorial is licensed under the [MIT license](https://opensource.org/licenses/MIT).
