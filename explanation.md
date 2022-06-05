@@ -355,3 +355,71 @@ $ php artisan test
   Tests:  1 passed
   Time:   0.08s
 ```
+
+- 無事とおりましたね。
+
+# step 5 -- テスト間の依存性に対処する
+
+- mysqlのテーブルも見に行ってみましょう。
+
+```bash
+mysql> select * from php_test_tutorials.projects;
++----+---------------------+---------------------+----------------+----------------------------------------------------------------------------------+
+| id | created_at          | updated_at          | title          | description                                                                      |
++----+---------------------+---------------------+----------------+----------------------------------------------------------------------------------+
+|  1 | 2022-06-04 12:33:47 | 2022-06-04 12:33:47 | test project 1 | lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja. |
+|  2 | 2022-06-05 13:32:57 | 2022-06-05 13:32:57 | test project 1 | lorem ipsum kajslehnn kjshawljidj kslkawhklska jhkaksjek jlakwkdhhir gnzjdbuwja. |
++----+---------------------+---------------------+----------------+----------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+```
+
+- 同じレコードが二つあります。そうです。現在のテストの構造では、テストを回すたびに同じテストレコードがひたすら作成されていくことになります。実はここには自動テストを行う上で注意するべき大きな課題が隠れています。それがテスト間の依存性です。
+
+例えば上記の例で、2回目のレコード作成が`ProjectsService`クラスで失敗した場合を考えてみてください。失敗自体はtry catchによってハンドリングされることで、処理が止まることはなく`false`が返ります。
+
+一方、`ProjectsController`ではserviceクラスの返り値によって返却するレスポンスステータスを変更はしていません。すなわち200が返却されます。
+すると、もともとテーブルに存在していた同じtitle、同じdescriptionのレコードのアサーションまですべて通ってしまい、本来は失敗であるべきテストが成功と評価されてしまいます。
+
+このように前に実行されたテストや、テスト(やテスト対象となる環境)のもともとの状態によって、後続のテストが影響を受けてしまうことを防ぐ必要があります。
+ここではデータベースの状態を毎回のテストで一緒にして、データベースに起因するテスト間の依存性に対処していきます。
+
+- `ProjectsTest`クラスに`RefreshDatabase`トレイトを読み込みましょう。
+
+```php
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ProjectsTest extends TestCase
+{
+    use RefreshDatabase;
+```
+
+- この`RefreshDatabase`トレイトは、テストの始まりに一旦`php artisan migrate:fresh`コマンドを発行して、データベースを真っ新にしたのち、migrationファイルで定義されたテーブルを作成します。その後データベーストランザクションをbeginし、テストの終了と同時にrollbackすることでテスト実行によるレコード作成などをなかったことにしています。
+
+```php
+protected function refreshTestDatabase()
+{
+    if (! RefreshDatabaseState::$migrated) {
+        $this->artisan('migrate:fresh', $this->migrateFreshUsing());
+
+        $this->app[Kernel::class]->setArtisan(null);
+
+        RefreshDatabaseState::$migrated = true;
+    }
+
+    $this->beginDatabaseTransaction();
+}
+```
+
+- 注目してほしいのが`migrate:fresh`と`beginDatabaseTransaction()`の時系列です。`migrate:fresh`コマンドで現在接続中のデータベース内を更地にした後にトランザクションを開始しています。
+すなわち、テストが終了し、残るのはmigration実行後の真っ新なテーブルたちであって、あなたが本番環境で運用していたテーブル達ではありません。私はこれで一度テスト環境のテーブルをすべて吹き飛ばしました。
+
+**このトレイトは大変強力ですが、使用する際は、チーム内で認識を合わせ、また私のようにそそっかしいメンバーが大事なテーブルを吹き飛ばさないようあらかじめ対策を講じておくことをお勧めします。**
+
+# step 6 -- テスト時のデータベース操作をメモリ内で完結させる
+
+
+
+<!-- # 2. /projectsにGETでアクセスすると作成したプロジェクトが閲覧できる
+
+- /projectsへPOSTアクセスでプロジェクトの作成ができるようになりました。続いて、プロジェクトの一覧を閲覧する機能を作成します。今回も前回同様、ざっくりとした仕様をテストに書き出していきます。 -->

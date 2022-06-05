@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ProjectsTest extends TestCase
 {
+    use RefreshDatabase;
+
     /**
      * /projectsにPOSTアクセスするとプロジェクトを作成することができる
      *
