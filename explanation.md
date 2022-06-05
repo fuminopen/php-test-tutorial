@@ -308,3 +308,50 @@ mysql> select * from php_test_tutorials.projects;
 +----+---------------------+---------------------+----------------+----------------------------------------------------------------------------------+
 1 row in set (0.00 sec)
 ```
+
+# step 4 -- リファクタリングする
+
+- 現在、projectsテーブルのレコードを作成する処理を`ProjectsController`に書いてしまっています。ここではMVCSアーキテクチャを採用しているものと考え、リファクタリングを行っていきます。
+`ProjectsController`から`ProjectsService`に定義されたレコード作成処理、`create()`を呼び出すように変更します。
+
+```php
+// ProjectsController
+
+public function create(Request $request)
+{
+    $projectsService = new ProjectsService();
+
+    $projectsService->create(
+        $request->title,
+        $request->description
+    );
+}
+
+// ProjectsService
+
+public function create(string $title, string $description): bool
+{
+    try {
+        Project::create([
+            'title' => $title,
+            'description' => $description,
+        ]);
+    } catch (Exception $e) {
+        return false;
+    }
+
+    return true;
+}
+```
+
+- さて、もう一度テストを回してみましょう。
+
+```bash
+$ php artisan test
+
+   PASS  Tests\Feature\ProjectsTest
+  ✓ projects created
+
+  Tests:  1 passed
+  Time:   0.08s
+```

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Services\ProjectsService;
 use Illuminate\Http\Request;
 
 class ProjectsController extends Controller
@@ -14,9 +15,11 @@ class ProjectsController extends Controller
      */
     public function create(Request $request)
     {
-        Project::create([
-            'title' => $request->title,
-            'description' => $request->description,
-        ]);
+        $projectsService = new ProjectsService();
+
+        $projectsService->create(
+            $request->title,
+            $request->description
+        );
     }
 }
