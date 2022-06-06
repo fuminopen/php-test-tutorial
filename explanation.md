@@ -418,6 +418,45 @@ protected function refreshTestDatabase()
 
 # step 6 -- テスト時のデータベース操作をメモリ内で完結させる
 
+- この対策として有効なのが、テスト実行時にそもそも外部のDBサーバーに接続をせず、メモリ上のDBでデータの操作を行う、というものです。phpunit.xmlを開き、下記を編集しましょう。
+
+```xml
+<php>
+    <env name="APP_ENV" value="testing"/>
+    <env name="BCRYPT_ROUNDS" value="4"/>
+    <env name="CACHE_DRIVER" value="array"/>
+    <env name="DB_CONNECTION" value="sqlite"/> <!-- 追加 -->
+    <env name="DB_DATABASE" value=":memory:"/> <!-- 追加 -->
+    <env name="MAIL_MAILER" value="array"/>
+    <env name="QUEUE_CONNECTION" value="sync"/>
+    <env name="SESSION_DRIVER" value="array"/>
+    <env name="TELESCOPE_ENABLED" value="false"/>
+</php>
+```
+
+- それでは、念のためmysqlのprojectsテーブルのレコードを削除したのち、テストをまわしてみましょう。
+
+```bash
+mysql> delete from php_test_tutorials.projects;
+Query OK, 2 rows affected (0.00 sec)
+```
+
+```bash
+   PASS  Tests\Feature\ProjectsTest
+  ✓ projects created
+
+  Tests:  1 passed
+  Time:   0.08s
+```
+
+- 無事通りました。mysqlのテーブルも汚れていないことが確認できます。
+
+```bash
+mysql> select * from php_test_tutorials.projects;
+Empty set (0.00 sec)
+```
+
+- このように、sqliteを使用して通常使用しているDBに依存しないテストを作成する方法の他、`.env.testing`というテスト専用の.envファイルを作成し、テスト用のデータベースを定義してしまうことも可能です。いずれの場合も、もともとデータベースに入っている値を読み出すなどの処理が行えないなど一長一短はありますが、信頼性の高いテストを作成するうえで非常に強力なツールとなるため、ぜひ運用方法を確立したいものです
 
 
 <!-- # 2. /projectsにGETでアクセスすると作成したプロジェクトが閲覧できる
